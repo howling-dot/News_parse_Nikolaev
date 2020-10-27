@@ -86,13 +86,11 @@ async def unsubscribe(message: types.Message):
 async def scheduled(wait_for):
 	while True:
 		await asyncio.sleep(wait_for)
-		print('start')
 		new_news = parse_pn.parse_news()
 		if new_news:
 			subscriptions = db.get_subscription()
 			for i in subscriptions:
 				await bots.send_message(i[1], new_news, disable_notification=True)
-		print('stop')
 
 
 if __name__ == '__main__':
