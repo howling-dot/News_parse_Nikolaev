@@ -1,7 +1,7 @@
 from pyowm import OWM
 from pyowm.utils.config import get_default_config
 from covid import Covid
-#import logging
+import settings
 from parse import ParsePN
 from sqlighter import SQLighter
 from aiogram import Bot, Dispatcher, executor, types
@@ -10,14 +10,14 @@ import asyncio
 
 
 #bot
-bots = Bot("678908061:AAE-kmyK2_l8vtfg0eO3YiNp94yuzQvqRa0")
+bots = Bot(settings.bot_token)
 loop = asyncio.get_event_loop()
 bot = Dispatcher(bots, loop=loop)
 
 # OWM
 config_dict = get_default_config()
 config_dict['language'] = 'ru'
-owm = OWM('aaa6c5a66b270fe65e5a711ef37e7f63', config_dict)
+owm = OWM(settings.owm_key, config_dict)
 mgr = owm.weather_manager()
 
 parse_pn = ParsePN()
@@ -95,18 +95,6 @@ async def scheduled(wait_for):
 		print('stop')
 
 
-
-
-# import sched, time
-# s = sched.scheduler(time.time, time.sleep)
-# def do_something(sc):
-#     # do your stuff
-#     s.enter(60, 1, do_something, (sc,))
-#
-# s.enter(60, 1, do_something, (s,))
-# s.run()
-#bot.loop.create_task(scheduled(10))
-
 if __name__ == '__main__':
-	bot.loop.create_task(scheduled(10)) # пока что оставим 10 секунд (в качестве теста)
+	bot.loop.create_task(scheduled(1800)) # пока что оставим 10 секунд (в качестве теста)
 	executor.start_polling(bot, skip_updates=True)
