@@ -23,7 +23,7 @@ class SQLighter:
 
 	def update_subscription(self, user_id, status):
 		with self.connection:
-			return self.cursor.execute("UPDATE users SET status = ? WHERE user_id = ?", (status,user_id))
+			return self.cursor.execute("UPDATE users SET status = ? WHERE user_id = ?", (status, user_id))
 
 	def close(self):
 		with self.connection:

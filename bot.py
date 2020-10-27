@@ -6,10 +6,13 @@ from parse import ParsePN
 from sqlighter import SQLighter
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.filters.state import State, StatesGroup
+import asyncio
+
 
 #bot
 bots = Bot("678908061:AAE-kmyK2_l8vtfg0eO3YiNp94yuzQvqRa0")
-bot = Dispatcher(bots)
+loop = asyncio.get_event_loop()
+bot = Dispatcher(bots, loop=loop)
 
 # OWM
 config_dict = get_default_config()
@@ -17,6 +20,7 @@ config_dict['language'] = 'ru'
 owm = OWM('aaa6c5a66b270fe65e5a711ef37e7f63', config_dict)
 mgr = owm.weather_manager()
 
+parse_pn = ParsePN()
 # States
 class Form(StatesGroup):
     place = State()  # Will be represented in storage as 'Form:name'
@@ -82,13 +86,13 @@ async def unsubscribe(message: types.Message):
 async def scheduled(wait_for):
 	while True:
 		await asyncio.sleep(wait_for)
-		parse_pn = ParsePN()
+		print('start')
 		new_news = parse_pn.parse_news()
 		if new_news:
 			subscriptions = db.get_subscription()
 			for i in subscriptions:
-				await bots.send_message(i[1],aption = nfo['title'] + "\n" + "Оценка: " + nfo['score'] + "\n" + nfo['excerpt'] + "\n\n" + nfo['link'],
-								disable_notification = True)
+				await bots.send_message(i[1], new_news, disable_notification=True)
+		print('stop')
 
 
 
@@ -101,6 +105,8 @@ async def scheduled(wait_for):
 #
 # s.enter(60, 1, do_something, (s,))
 # s.run()
+#bot.loop.create_task(scheduled(10))
 
-executor.start_polling(bot, skip_updates=True)
-#bot.polling(none_stop = True)
+if __name__ == '__main__':
+	bot.loop.create_task(scheduled(10)) # пока что оставим 10 секунд (в качестве теста)
+	executor.start_polling(bot, skip_updates=True)
