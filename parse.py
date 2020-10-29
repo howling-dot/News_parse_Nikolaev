@@ -2,14 +2,6 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 
-# import sched, time
-# s = sched.scheduler(time.time, time.sleep)
-# def do_something(sc):
-#     # do your stuff
-#     s.enter(60, 1, do_something, (sc,))
-#
-# s.enter(60, 1, do_something, (s,))
-# s.run()
 
 # Парсер новостей с сайта news.pn.
 class ParsePN:

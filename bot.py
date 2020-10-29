@@ -8,8 +8,7 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.filters.state import State, StatesGroup
 import asyncio
 
-
-#bot
+# bot
 bots = Bot(settings.bot_token)
 loop = asyncio.get_event_loop()
 bot = Dispatcher(bots, loop=loop)
@@ -20,85 +19,101 @@ config_dict['language'] = 'ru'
 owm = OWM(settings.owm_key, config_dict)
 mgr = owm.weather_manager()
 
+# Создаем классы
 parse_pn = ParsePN()
 parse_ukrnet = ParseUkrNetMk()
+
+# инициализируем соединение с БД
+db = SQLighter("db.db")
+
+
 # States
 class Form(StatesGroup):
     place = State()  # Will be represented in storage as 'Form:name'
+
+
 #    age = State()  # Will be represented in storage as 'Form:age'
 #    gender = State()  # Will be represented in storage as 'Form:gender'
 
+
+# Обработка кнопки старт
 @bot.message_handler(commands=['start'])
 async def handle_start(message: types.Message):
-	markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-	markup.row('/weather','/covid_ua')
-	markup.row('/subscribe','/unsubscribe')
-	markup.row('/stop')
-	await message.answer("Your choose:", reply_markup=markup)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    markup.row('/weather', '/covid_ua')
+    markup.row('/subscribe', '/unsubscribe')
+    markup.row('/stop')
+    await message.answer("Your choose:", reply_markup=markup)
 
+
+# Обработка кнопки стоп
 @bot.message_handler(commands=['stop'])
 async def handle_stop(message):
-	await message.answer("Thanks", reply_markup=types.ReplyKeyboardRemove())
+    await message.answer("Thanks", reply_markup=types.ReplyKeyboardRemove())
 
+
+# Обработка кнопки covid_ua
 @bot.message_handler(commands=['covid_ua'])
 async def handle_stop(message: types.Message):
-	covid = Covid()
-	covid.get_data()
-	ua_cases = covid.get_status_by_country_name("ukraine")
-	answer = ('В '+ ua_cases['country'] + ' всего подтвердженных случаев ' + str(ua_cases['confirmed']) + '. В данный момент болеют ' + str(ua_cases['active']) + '. Всего смертей ' + str(ua_cases['deaths']) + '. Уже выздоровили ' + str(ua_cases['recovered']) + '.')
-	#bot.send_message(message.chat.id, answer)
-	await message.answer(answer)
+    covid = Covid()
+    covid.get_data()
+    ua_cases = covid.get_status_by_country_name("ukraine")
+    answer = ('В ' + ua_cases['country'] + ' всего подтвердженных случаев ' + str(
+        ua_cases['confirmed']) + '. В данный момент болеют ' + str(ua_cases['active']) + '. Всего смертей ' + str(
+        ua_cases['deaths']) + '. Уже выздоровили ' + str(ua_cases['recovered']) + '.')
+    await message.answer(answer)
 
+
+# Обработка кнопки weather
 @bot.message_handler(commands=['weather'])
 async def handle_weather(message: types.Message):
-#	await message.answer('enter the your place')
-	place = 'Николаев'
-	try:
-		observation = mgr.weather_at_place(place)
-		w = observation.weather
-		answer = ('В городе ' + place + ' ' + w.detailed_status + '. Температура воздуха '+ str(round(w.temperature('celsius')['temp'])) + ' градусов цельсия\n')
-		await message.answer(answer)
-	except:
-		await message.answer('Unable to find your place, to return click /weather and try again')
+    place = 'Николаев'
+    try:
+        observation = mgr.weather_at_place(place)
+        w = observation.weather
+        answer = ('В городе ' + place + ' ' + w.detailed_status + '. Температура воздуха ' + str(
+            round(w.temperature('celsius')['temp'])) + ' градусов цельсия\n')
+        await message.answer(answer)
+    except:
+        await message.answer('Unable to find your place, to return click /weather and try again')
 
-#инициализируем соединение с БД
-db = SQLighter("db.db")
 
-#активация подписки
+# активация подписки
 @bot.message_handler(commands=["subscribe"])
 async def subscribe(message: types.Message):
-	if (not db.subscriber_exist(message.from_user.id)):
-		db.add_subscriber(message.from_user.id)
-	else:
-		db.update_subscription(message.from_user.id, True)	
+    if not db.subscriber_exist(message.from_user.id):
+        db.add_subscriber(message.from_user.id)
+    else:
+        db.update_subscription(message.from_user.id, True)
 
-	await message.answer("вы успешно активировали подписку")
+    await message.answer("вы успешно активировали подписку")
 
-#отписка
+
+# отписка
 @bot.message_handler(commands=['unsubscribe'])
 async def unsubscribe(message: types.Message):
-	if(db.subscriber_exist(message.from_user.id)):
-		db.update_subscription(message.from_user.id, False)
-	else:
-		db.add_subscriber(message.from_user.id, False)
-	await message.answer('вы успешно отписаны от рассылки')
+    if db.subscriber_exist(message.from_user.id):
+        db.update_subscription(message.from_user.id, False)
+    else:
+        db.add_subscriber(message.from_user.id, False)
+    await message.answer('вы успешно отписаны от рассылки')
 
 
 async def scheduled(wait_for):
-	while True:
-		await asyncio.sleep(wait_for)
-		new_newspn = parse_pn.parse_news()
-		new_newsukrnet = parse_ukrnet.parse_news()
-		if new_newspn:
-			subscriptions = db.get_subscription()
-			for i in subscriptions:
-				await bots.send_message(i[1], new_newspn, disable_notification=True)
-		if new_newsukrnet:
-			subscriptions = db.get_subscription()
-			for i in subscriptions:
-				await bots.send_message(i[1], new_newsukrnet, disable_notification=True)
+    while True:
+        await asyncio.sleep(wait_for)
+        new_newspn = parse_pn.parse_news()
+        new_newsukrnet = parse_ukrnet.parse_news()
+        if new_newspn:
+            subscriptions = db.get_subscription()
+            for i in subscriptions:
+                await bots.send_message(i[1], new_newspn, disable_notification=True)
+        if new_newsukrnet:
+            subscriptions = db.get_subscription()
+            for i in subscriptions:
+                await bots.send_message(i[1], new_newsukrnet, disable_notification=True)
 
 
 if __name__ == '__main__':
-	bot.loop.create_task(scheduled(120)) # пока что оставим 10 секунд (в качестве теста)
-	executor.start_polling(bot, skip_updates=True)
+    bot.loop.create_task(scheduled(120))  # пока что оставим 10 секунд (в качестве теста)
+    executor.start_polling(bot, skip_updates=True)
