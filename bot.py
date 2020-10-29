@@ -2,7 +2,7 @@ from pyowm import OWM
 from pyowm.utils.config import get_default_config
 from covid import Covid
 import settings
-from parse import ParsePN
+from parse import ParsePN, ParseUkrNetMk
 from sqlighter import SQLighter
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.filters.state import State, StatesGroup
@@ -21,6 +21,7 @@ owm = OWM(settings.owm_key, config_dict)
 mgr = owm.weather_manager()
 
 parse_pn = ParsePN()
+parse_ukrnet = ParseUkrNetMk()
 # States
 class Form(StatesGroup):
     place = State()  # Will be represented in storage as 'Form:name'
@@ -86,15 +87,18 @@ async def unsubscribe(message: types.Message):
 async def scheduled(wait_for):
 	while True:
 		await asyncio.sleep(wait_for)
-		print('start')
-		new_news = parse_pn.parse_news()
-		if new_news:
+		new_newspn = parse_pn.parse_news()
+		new_newsukrnet = parse_ukrnet.parse_news()
+		if new_newspn:
 			subscriptions = db.get_subscription()
 			for i in subscriptions:
-				await bots.send_message(i[1], new_news, disable_notification=True)
-		print('stop')
+				await bots.send_message(i[1], new_newspn, disable_notification=True)
+		if new_newsukrnet:
+			subscriptions = db.get_subscription()
+			for i in subscriptions:
+				await bots.send_message(i[1], new_newsukrnet, disable_notification=True)
 
 
 if __name__ == '__main__':
-	bot.loop.create_task(scheduled(1800)) # пока что оставим 10 секунд (в качестве теста)
+	bot.loop.create_task(scheduled(120)) # пока что оставим 10 секунд (в качестве теста)
 	executor.start_polling(bot, skip_updates=True)
