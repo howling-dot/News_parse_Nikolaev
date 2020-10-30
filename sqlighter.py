@@ -22,9 +22,17 @@ class SQLighter:
 		with self.connection:
 			return self.cursor.execute("INSERT INTO users ('user_id', 'status') VALUES (?,?)", (user_id, status))
 
-	def update_subscription(self, user_id, status):
+	def add_sity(self, user_id, sity):
 		with self.connection:
-			return self.cursor.execute("UPDATE users SET status = ? WHERE user_id = ?", (status, user_id))
+			return self.cursor.execute("INSERT INTO users ('user_id', 'sity') VALUES (?,?)", (user_id, sity))
+
+	def get_sity(self, user_id):
+		with self.connection:
+			return self.cursor.execute('SELECT sity FROM USERS WHERE STATUS = ?', (user_id,)).fetchall()
+
+	def update_subscription(self, user_id, sity, status):
+		with self.connection:
+			return self.cursor.execute("UPDATE users SET sity = ?, status = ? WHERE user_id = ?", (status, sity, user_id))
 
 	def close(self):
 		with self.connection:

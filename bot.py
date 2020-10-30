@@ -40,7 +40,7 @@ class Form(StatesGroup):
 @bot.message_handler(commands=['start'])
 async def handle_start(message: types.Message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    markup.row('/weather', '/covid_ua')
+    markup.row('/weather', '/weather2', '/covid_ua')
     markup.row('/subscribe', '/unsubscribe')
     markup.row('/stop')
     await message.answer("Your choose:", reply_markup=markup)
@@ -78,6 +78,31 @@ async def handle_weather(message: types.Message):
         await message.answer('Unable to find your place, to return click /weather and try again')
 
 
+@bot.message_handler(commands=['weather2'])
+async def handle_weather2(message: types.Message):
+    place = 'Николаев'
+    print(place)
+    if db.get_sity(message.from_user.id):
+        place = db.get_sity(message.from_user.id)
+    else:
+        bots.send_message(message.from_user.id, 'Введите свой город:')
+        plase = message.text
+        if not db.subscriber_exist(message.from_user.id):
+            db.add_subscriber(message.from_user.id)
+        else:
+            db.update_subscription(message.from_user.id, True)
+        if db.add_sity(message.from_user.id, place)
+    print(place)
+    try:
+        observation = mgr.weather_at_place(place)
+        w = observation.weather
+        answer = ('В городе ' + place + ' ' + w.detailed_status + '. Температура воздуха ' + str(
+            round(w.temperature('celsius')['temp'])) + ' градусов цельсия\n')
+        await message.answer(answer)
+    except:
+        await message.answer('Unable to find your place, to return click /weather and try again')
+
+
 # активация подписки
 @bot.message_handler(commands=["subscribe"])
 async def subscribe(message: types.Message):
@@ -99,6 +124,23 @@ async def unsubscribe(message: types.Message):
     await message.answer('вы успешно отписаны от рассылки')
 
 
+@bot.message_handler(commands=["geo"])
+async def geo(message):
+    keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+    keyboard.row(types.KeyboardButton(text="Отправить местоположение", request_location=True))
+    await bots.send_message(message.chat.id, "Привет! Нажми на кнопку и передай мне свое местоположение",
+                     reply_markup=keyboard)
+
+import geocoder
+@bot.message_handler(content_types=["location"])
+def location(message):
+    if message.location is not None:
+        latlng = (message.location.latitude, message.location.longitude)
+        g = geocoder.reverse(latlng)
+        print(g)
+        print("latitude: %s; longitude: %s" % (message.location.latitude, message.location.longitude))
+
+
 async def scheduled(wait_for):
     while True:
         await asyncio.sleep(wait_for)
@@ -115,5 +157,5 @@ async def scheduled(wait_for):
 
 
 if __name__ == '__main__':
-    bot.loop.create_task(scheduled(120))  # пока что оставим 10 секунд (в качестве теста)
+    bot.loop.create_task(scheduled(10))  # пока что оставим 10 секунд (в качестве теста)
     executor.start_polling(bot, skip_updates=True)
